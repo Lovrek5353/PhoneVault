@@ -1,8 +1,10 @@
-import { Component, Input } from '@angular/core';
+import { AfterViewInit, ChangeDetectorRef, Component, Input } from '@angular/core';
 import { Product } from "../../../model/product";
 import { CurrencyPipe, NgClass } from "@angular/common";
 import { RouterLink } from "@angular/router";
 import { ShoppingCartService } from "../../../services/shopping-cart.service";
+import { ExchangeRateService } from "../../../services/exchange-rate.service";
+import { ProductService } from "../../../services/product.service";
 
 const maxSpecificationLength = 3;
 
@@ -17,12 +19,31 @@ const maxSpecificationLength = 3;
   templateUrl: './product-card.component.html',
   styleUrl: './product-card.component.scss'
 })
-export class ProductCardComponent {
+export class ProductCardComponent implements AfterViewInit{
   @Input({ required: true }) product!: Product;
+  imageUrl?: string;
+  priceString = "";
 
   constructor(
-    private shoppingCart: ShoppingCartService
+    private shoppingCart: ShoppingCartService,
+    private exchangeRate: ExchangeRateService,
+    private productService: ProductService,
+    private cdr: ChangeDetectorRef
   ) {
+  }
+
+  ngAfterViewInit() {
+    this.priceString = `${this.product.sellPrice} €`;
+    this.cdr.detectChanges();
+    this.exchangeRate.calculatePrice(this.product.sellPrice).then(price => {
+      this.priceString = `${price} ${this.exchangeRate.selectedCurrency}`;
+    });
+
+    this.productService.getImages(this.product.id).then(images => {
+      if (images.length > 0) {
+        this.imageUrl = images[0];
+      }
+    });
   }
 
   get specifications(): string[] {
